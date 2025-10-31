@@ -47,7 +47,8 @@ public class UserFacade {
     }
 
     @Transactional
-    public Integer addUserPoint(String loginId, Integer userPoint) {      User user = userService.findUserById(loginId)
+    public Integer addUserPoint(String loginId, Integer userPoint) {
+        User user = userService.findUserById(loginId)
                 .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "[loginId = " + loginId + "] point를 충전할 User를 찾을 수 없습니다."));
         user.addPoint(userPoint);
         Optional<User> savedUser = userService.saveUser(user);

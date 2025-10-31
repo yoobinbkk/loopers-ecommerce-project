@@ -41,8 +41,8 @@ public class UserTest {
                     () -> assertEquals(user.getLoginId(), validLoginId)
                     , () -> assertEquals(user.getEmail(), validEmail)
                     , () -> assertEquals(user.getBirthday(), validBirthday)
-                    ,  () -> assertEquals(user.getGender(), validGender)
-                    ,  () -> assertEquals(user.getPoint(), validPoint)
+                    , () -> assertEquals(user.getGender(), validGender)
+                    , () -> assertEquals(user.getPoint(), validPoint)
             );
         }
 

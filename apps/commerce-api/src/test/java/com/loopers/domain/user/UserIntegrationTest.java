@@ -2,7 +2,6 @@ package com.loopers.domain.user;
 
 import com.loopers.application.user.UserFacade;
 import com.loopers.application.user.UserInfo;
-import com.loopers.interfaces.api.user.UserDto;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import com.loopers.utils.DatabaseCleanUp;
@@ -23,9 +22,6 @@ public class UserIntegrationTest {
 
     @Autowired
     private UserFacade userFacade;
-
-    @Autowired
-    private UserService userService;
 
     @MockitoSpyBean
     private UserRepository userRepository;
@@ -50,7 +46,7 @@ public class UserIntegrationTest {
         @Test
         void saveUser_withValidFields_Success() {
             // arrange
-            UserDto.CreateUserRequest cur = UserDto.CreateUserRequest.builder()
+            UserInfo userinfo = UserInfo.builder()
                     .loginId(validLoginId)
                     .email(validEmail)
                     .birthday(validBirthday)
@@ -59,7 +55,7 @@ public class UserIntegrationTest {
                     .build();
 
             // act
-            userFacade.saveUser(UserInfo.from(cur));
+            userFacade.saveUser(userinfo);
 
             // assert
             Mockito.verify(userRepository, Mockito.times(1))
@@ -77,18 +73,18 @@ public class UserIntegrationTest {
         @Test
         void saveUser_spyUserRepository_Success() {
             // arrange
-            UserDto.CreateUserRequest cur = UserDto.CreateUserRequest.builder()
+            UserInfo userinfo = UserInfo.builder()
                     .loginId(validLoginId)
                     .email(validEmail)
                     .birthday(validBirthday)
                     .gender(validGender)
                     .point(validPoint)
                     .build();
+            userFacade.saveUser(userinfo);
 
             // act
-            userFacade.saveUser(UserInfo.from(cur));
             CoreException result = assertThrows(CoreException.class,
-                () -> userFacade.saveUser(UserInfo.from(cur)));
+                () -> userFacade.saveUser(userinfo));
 
             // assert
             assertEquals(ErrorType.CONFLICT, result.getErrorType());
@@ -104,15 +100,14 @@ public class UserIntegrationTest {
         @Test
         void getUser_idExists_Success() {
             // arrange
-            UserDto.CreateUserRequest cur = UserDto.CreateUserRequest.builder()
+            UserInfo userinfo = UserInfo.builder()
                     .loginId(validLoginId)
                     .email(validEmail)
                     .birthday(validBirthday)
                     .gender(validGender)
                     .point(validPoint)
                     .build();
-
-            userFacade.saveUser(UserInfo.from(cur));
+            userFacade.saveUser(userinfo);
 
             // act
             UserInfo userInfo = userFacade.getUser(validLoginId);
