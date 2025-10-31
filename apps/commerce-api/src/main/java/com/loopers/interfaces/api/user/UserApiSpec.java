@@ -34,7 +34,13 @@ public interface UserApiSpec {
     )
     ApiResponse<Integer> getUserPoint(
             @Schema(name = "로그인 ID", description = "포인트 조회할 회원의 로그인 ID")
-            String loginId
+            String loginId,
+            @Parameter(
+                    name = "X-USER-ID"
+                    , in = ParameterIn.HEADER
+                    , description = "요청자 사용자 ID 헤더"
+            )
+            String xUserId
     );
 
     @Operation(
