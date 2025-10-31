@@ -277,6 +277,30 @@ public class UserTest {
 
             @DisplayName("실패 케이스 : 0 이하의 정수로 포인트를 충전 시 실패")
             @Test
+            void addPoint_inputZero_BadRequest() {
+                // arrange
+                User user = User.builder()
+                        .loginId(validLoginId)
+                        .email(validEmail)
+                        .birthday(validBirthday)
+                        .gender(validGender)
+                        .point(validPoint)
+                        .build();
+
+                Integer requestPoint = 0;
+
+                // act
+                CoreException result = assertThrows(CoreException.class,
+                        () -> user.addPoint(requestPoint)
+                );
+
+                // assert
+                assertEquals(ErrorType.BAD_REQUEST, result.getErrorType());
+                assertEquals("충전할 point는 0 이하가 될 수 없습니다.", result.getCustomMessage());
+            }
+
+            @DisplayName("실패 케이스 : 음수로 포인트를 충전 시 실패")
+            @Test
             void addPoint_inputBelowZero_BadRequest() {
                 // arrange
                 User user = User.builder()
@@ -296,7 +320,7 @@ public class UserTest {
 
                 // assert
                 assertEquals(ErrorType.BAD_REQUEST, result.getErrorType());
-                assertEquals("충전할 point는 음수가 될 수 없습니다.", result.getCustomMessage());
+                assertEquals("충전할 point는 0 이하가 될 수 없습니다.", result.getCustomMessage());
             }
         }
 

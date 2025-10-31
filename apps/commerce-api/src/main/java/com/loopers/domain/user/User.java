@@ -65,7 +65,7 @@ public class User extends BaseEntity {
 
     public Integer addPoint(Integer point) {
         // 충전하는 포인트가 음수이면 BAD REQUEST CoreException 을 발생
-        if(point < 0) throw new CoreException(ErrorType.BAD_REQUEST, "충전할 point는 음수가 될 수 없습니다.");
+        if(point <= 0) throw new CoreException(ErrorType.BAD_REQUEST, "충전할 point는 0 이하가 될 수 없습니다.");
         this.point += point;
         return this.point;
     }
