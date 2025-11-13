@@ -2,12 +2,12 @@
 title: Product API Sequence Diagram
 ---
 sequenceDiagram
-autonumber
-actor Client
-participant C as ProductController
-participant F as ProductFacade
-participant S as ProductService
-participant R as ProductRepository
+    autonumber
+    actor Client
+    participant C as ProductController
+    participant F as ProductFacade
+    participant S as ProductService
+    participant R as ProductRepository
 
     %% 상품 목록 조회
     Client->>+C: GET /api/v1/products (ProductDto.SearchRequest req)
@@ -19,15 +19,16 @@ participant R as ProductRepository
 
     S->>+R: findProductsCustom(Predicate predicate, Pageable pageable)
 
-    Note right of S: QueryDSL 의 Predicate(BooleanBuilder) 를 활용하여<br/>상품 카테고리와 브랜드 조건으로 List<Product> 를 가져오게 한다.
-    Note right of S: Pageable 객체를 활용해서 페이지 관련 데이터를 받아 Response data 에 담는다.
+    Note right of S: QueryDSL 의 Predicate(BooleanBuilder) 를 활용하여<br/>상품 카테고리와 브랜드 조건으로 List<Product> 를 가져오게 한다.<br/><br/>booleanBuilder.and(qProduct.categoryId.eq(req.getCategoryId()))<br/>booleanBuilder.and(qProduct.brand.name.containsIgnoreCase(req.getBrandName()))
+    Note right of S: Pageable 객체를 활용해서 페이지 관련 데이터를 받아 Response data 에 담는다.<br/><br/>Pageable pageable = PageRequest.of(<br/>            req.getPageIndex(),<br/>            req.getPageSize(),<br/>            Sort.by(Sort.Direction.DESC, req.getSortBy())<br/>);
     
-    R-->>-S: Optional<List<Product>>
+    R-->>-S: Optional<List<Product>> products
 
-    alt Product 목록이 있는 경우
-        S->>S: List<Product> 객체 반환
-    else Product 목록이 없는 경우
-        S->>S: List<Product> empty 객체 반환
+    alt products.isPresent == true
+        S->>S: return List<Product> products
+    else products.isPresent == false
+        S->>S: return Collections.emptyList()
+        Note right of S: 비어있는 리스트를 반환
     end
     
     S->>S: List<Product> -> List<ProductInfo>
@@ -46,10 +47,10 @@ participant R as ProductRepository
     F->>+S: getProductDetail(Long productId)
     S->>+R: findById(Long productId)
     
-    R-->>-S: Optional<Product>
+    R-->>-S: Optional<Product> product
 
     rect rgb(20,20,0)
-        alt Product가 존재하지 않는 경우
+        opt products.isPresent == false
             S-->>Client: NullPointerException(message)
             Note left of C: "meta": { "result": "FAIL",<br/>"errorCode": NOT_FOUND,<br/>"message": "상품을 찾지 못했습니다." },<br/>"data": {}
         end

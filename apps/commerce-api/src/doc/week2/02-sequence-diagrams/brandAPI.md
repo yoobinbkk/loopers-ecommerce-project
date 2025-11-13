@@ -20,7 +20,7 @@ sequenceDiagram
     R-->>-S: Optional<Brand>
 
     rect rgb(20,20,0)
-        alt Brand가 존재하지 않는 경우
+        opt Brand가 존재하지 않는 경우
             S-->>Client: NullPointerException(message)
             Note left of C: "meta": { "result": "FAIL",<br/>"errorCode": NOT_FOUND,<br/>"message": "브랜드를 찾지 못했습니다." },<br/>"data": {}
         end

@@ -18,19 +18,10 @@ erDiagram
     product {
         bigint id PK
         bigint brand_id FK
-        bigint stock_id FK
         varchar name
         varchar description
         enum status
         bigint price
-        boolean is_visible
-        boolean is_sellable
-    }
-    product_category {
-        bigint id PK
-        bigint parent_id
-        varchar name
-        varchar description
         boolean is_visible
         boolean is_sellable
     }
