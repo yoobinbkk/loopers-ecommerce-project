@@ -24,35 +24,11 @@ public interface UserApiSpec {
             , description = "로그인 ID 로 회원 조회합니다."
     )
     ApiResponse<UserDto.UserResponse> getUser(
-            @Schema(name = "로그인 ID", description = "회원 조회할 로그인 ID")
-            String loginId
-    );
-
-    @Operation(
-            summary = "포인트 조회"
-            , description = "회원의 포인트 조회합니다."
-    )
-    ApiResponse<Integer> getUserPoint(
-            @Schema(name = "로그인 ID", description = "포인트 조회할 회원의 로그인 ID")
-            String loginId,
             @Parameter(
                     name = "X-USER-ID"
                     , in = ParameterIn.HEADER
                     , description = "요청자 사용자 ID 헤더"
             )
             String xUserId
-    );
-
-    @Operation(
-            summary = "포인트 충전"
-            , description = "회원의 포인트 충전합니다."
-    )
-    ApiResponse<Integer> addUserPoint(
-            @Schema(name = "로그인 ID", description = "포인트 충전할 회원의 로그인 ID")
-            @Parameter(name = "loginId", in = ParameterIn.PATH)
-            String loginId,
-            @Schema(name = "충전할 포인트", description = "포인트 충전할 회원의 로그인 ID")
-            @Parameter(name = "userPoint", in = ParameterIn.QUERY)
-            Integer userPoint
     );
 }

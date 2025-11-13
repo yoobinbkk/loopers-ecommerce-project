@@ -10,6 +10,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Component
 public class UserRepositoryImpl implements UserRepository {
+
     private final UserJpaRepository userJpaRepository;
 
     @Override

@@ -1,10 +1,13 @@
 package com.loopers.domain.user;
 
+import com.loopers.domain.point.Point;
 import com.loopers.support.error.CoreException;
 import com.loopers.support.error.ErrorType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -18,13 +21,17 @@ public class UserTest {
         final String validLoginId = "bobby34";
         final String validEmail = "bobby34@naver.com";
         final String validBirthday = "1994-04-08";
-        final String validGender = "M";
-        final Integer validPoint = 0;
+        final Gender validGender = Gender.MALE;
+        final BigDecimal validPoint = BigDecimal.valueOf(0);
 
         @DisplayName("성공 케이스 : 필드가 모두 형식에 맞으면 User 객체 생성 성공")
         @Test
         void createUser_withValidFields_Success() {
             // arrange
+            Point point = Point.builder()
+                    .user(null)
+                    .amount(validPoint)
+                    .build();
 
             // act
             User user = User.builder()
@@ -32,7 +39,7 @@ public class UserTest {
                     .email(validEmail)
                     .birthday(validBirthday)
                     .gender(validGender)
-                    .point(validPoint)
+                    .point(point)
                     .build();
 
             // assert
@@ -42,7 +49,7 @@ public class UserTest {
                     , () -> assertEquals(user.getEmail(), validEmail)
                     , () -> assertEquals(user.getBirthday(), validBirthday)
                     , () -> assertEquals(user.getGender(), validGender)
-                    , () -> assertEquals(user.getPoint(), validPoint)
+                    , () -> assertEquals(user.getPoint().getAmount(), validPoint)
             );
         }
 
@@ -68,7 +75,7 @@ public class UserTest {
                 
                 // assert
                 assertEquals(ErrorType.BAD_REQUEST, result.getErrorType());
-                assertEquals("ID에 영문과 숫자만 10자 이내로 꼭 포함되어 있어야 합니다.", result.getCustomMessage());
+                assertEquals("User : ID가 비어있을 수 없습니다.ID에 영문과 숫자만 10자 이내로 꼭 포함되어 있어야 합니다.", result.getCustomMessage());
             }
 
             @DisplayName("실패 케이스 : User ID에 영문이 없으면 User 객체 생성 실패")
@@ -89,7 +96,7 @@ public class UserTest {
 
                 // assert
                 assertEquals(ErrorType.BAD_REQUEST, result.getErrorType());
-                assertEquals("ID에 영문과 숫자만 10자 이내로 꼭 포함되어 있어야 합니다.", result.getCustomMessage());
+                assertEquals("User : ID가 비어있을 수 없습니다.ID에 영문과 숫자만 10자 이내로 꼭 포함되어 있어야 합니다.", result.getCustomMessage());
             }
 
             @DisplayName("실패 케이스 : User ID에 숫자가 없으면 User 객체 생성 실패")
@@ -110,7 +117,7 @@ public class UserTest {
 
                 // assert
                 assertEquals(ErrorType.BAD_REQUEST, result.getErrorType());
-                assertEquals("ID에 영문과 숫자만 10자 이내로 꼭 포함되어 있어야 합니다.", result.getCustomMessage());
+                assertEquals("User : ID가 비어있을 수 없습니다.ID에 영문과 숫자만 10자 이내로 꼭 포함되어 있어야 합니다.", result.getCustomMessage());
             }
 
             @DisplayName("실패 케이스 : User ID가 10자를 넘어가면 User 객체 생성 실패")
@@ -131,7 +138,7 @@ public class UserTest {
 
                 // assert
                 assertEquals(ErrorType.BAD_REQUEST, result.getErrorType());
-                assertEquals("ID에 영문과 숫자만 10자 이내로 꼭 포함되어 있어야 합니다.", result.getCustomMessage());
+                assertEquals("User : ID가 비어있을 수 없습니다.ID에 영문과 숫자만 10자 이내로 꼭 포함되어 있어야 합니다.", result.getCustomMessage());
             }
         }
 
@@ -157,7 +164,7 @@ public class UserTest {
 
                 // assert
                 assertEquals(ErrorType.BAD_REQUEST, result.getErrorType());
-                assertEquals("email이 `xx@yy.zz` 형식에 맞아야 합니다.", result.getCustomMessage());
+                assertEquals("User : ID가 비어있을 수 없습니다.email이 `xx@yy.zz` 형식에 맞아야 합니다.", result.getCustomMessage());
             }
 
             @DisplayName("실패 케이스 : User email에 `@` 이 두 개 있으면 User 객체 생성 실패")
@@ -178,7 +185,7 @@ public class UserTest {
 
                 // assert
                 assertEquals(ErrorType.BAD_REQUEST, result.getErrorType());
-                assertEquals("email이 `xx@yy.zz` 형식에 맞아야 합니다.", result.getCustomMessage());
+                assertEquals("User : ID가 비어있을 수 없습니다.email이 `xx@yy.zz` 형식에 맞아야 합니다.", result.getCustomMessage());
             }
 
             @DisplayName("실패 케이스 : User email에 `.` 이 없으면 User 객체 생성 실패")
@@ -199,7 +206,7 @@ public class UserTest {
 
                 // assert
                 assertEquals(ErrorType.BAD_REQUEST, result.getErrorType());
-                assertEquals("email이 `xx@yy.zz` 형식에 맞아야 합니다.", result.getCustomMessage());
+                assertEquals("User : ID가 비어있을 수 없습니다.email이 `xx@yy.zz` 형식에 맞아야 합니다.", result.getCustomMessage());
             }
 
             @DisplayName("실패 케이스 : User email에 `.` 이 두 개 있으면 User 객체 생성 실패")
@@ -220,7 +227,7 @@ public class UserTest {
 
                 // assert
                 assertEquals(ErrorType.BAD_REQUEST, result.getErrorType());
-                assertEquals("email이 `xx@yy.zz` 형식에 맞아야 합니다.", result.getCustomMessage());
+                assertEquals("User : ID가 비어있을 수 없습니다.email이 `xx@yy.zz` 형식에 맞아야 합니다.", result.getCustomMessage());
             }
         }
 
@@ -246,7 +253,7 @@ public class UserTest {
 
                 // assert
                 assertEquals(ErrorType.BAD_REQUEST, result.getErrorType());
-                assertEquals("birthday가 `yyyy-MM-dd` 형식에 맞아야 합니다.", result.getCustomMessage());
+                assertEquals("User : ID가 비어있을 수 없습니다.birthday가 `yyyy-MM-dd` 형식에 맞아야 합니다.", result.getCustomMessage());
             }
 
             @DisplayName("실패 케이스 : User birthday가 `yyyy-MM-d` 형식이면 User 객체 생성 실패")
@@ -267,60 +274,7 @@ public class UserTest {
 
                 // assert
                 assertEquals(ErrorType.BAD_REQUEST, result.getErrorType());
-                assertEquals("birthday가 `yyyy-MM-dd` 형식에 맞아야 합니다.", result.getCustomMessage());
-            }
-        }
-
-        @DisplayName("point 충전 테스트")
-        @Nested
-        class PointTest {
-
-            @DisplayName("실패 케이스 : 0 이하의 정수로 포인트를 충전 시 실패")
-            @Test
-            void addPoint_inputZero_BadRequest() {
-                // arrange
-                User user = User.builder()
-                        .loginId(validLoginId)
-                        .email(validEmail)
-                        .birthday(validBirthday)
-                        .gender(validGender)
-                        .point(validPoint)
-                        .build();
-
-                Integer requestPoint = 0;
-
-                // act
-                CoreException result = assertThrows(CoreException.class,
-                        () -> user.addPoint(requestPoint)
-                );
-
-                // assert
-                assertEquals(ErrorType.BAD_REQUEST, result.getErrorType());
-                assertEquals("충전할 point는 0 이하가 될 수 없습니다.", result.getCustomMessage());
-            }
-
-            @DisplayName("실패 케이스 : 음수로 포인트를 충전 시 실패")
-            @Test
-            void addPoint_inputBelowZero_BadRequest() {
-                // arrange
-                User user = User.builder()
-                        .loginId(validLoginId)
-                        .email(validEmail)
-                        .birthday(validBirthday)
-                        .gender(validGender)
-                        .point(validPoint)
-                        .build();
-
-                Integer requestPoint = -10;
-
-                // act
-                CoreException result = assertThrows(CoreException.class,
-                        () -> user.addPoint(requestPoint)
-                );
-
-                // assert
-                assertEquals(ErrorType.BAD_REQUEST, result.getErrorType());
-                assertEquals("충전할 point는 0 이하가 될 수 없습니다.", result.getCustomMessage());
+                assertEquals("User : ID가 비어있을 수 없습니다.birthday가 `yyyy-MM-dd` 형식에 맞아야 합니다.", result.getCustomMessage());
             }
         }
 

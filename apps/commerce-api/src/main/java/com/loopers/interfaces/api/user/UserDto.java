@@ -1,6 +1,7 @@
 package com.loopers.interfaces.api.user;
 
 import com.loopers.application.user.UserInfo;
+import com.loopers.domain.user.Gender;
 import lombok.Builder;
 
 public class UserDto {
@@ -10,8 +11,7 @@ public class UserDto {
             String loginId
             , String email
             , String birthday
-            , String gender
-            , Integer point
+            , Gender gender
     ) {}
 
     @Builder
@@ -19,8 +19,7 @@ public class UserDto {
             String loginId
             , String email
             , String birthday
-            , String gender
-            , Integer point
+            , Gender gender
     ) {
         public static UserResponse from(UserInfo userInfo) {
             return UserResponse.builder()
@@ -28,7 +27,6 @@ public class UserDto {
                     .email(userInfo.email())
                     .birthday(userInfo.birthday())
                     .gender(userInfo.gender())
-                    .point(userInfo.point())
                     .build();
         }
     }

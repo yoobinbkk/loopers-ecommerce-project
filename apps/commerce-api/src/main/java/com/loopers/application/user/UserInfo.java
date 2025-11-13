@@ -1,32 +1,27 @@
 package com.loopers.application.user;
 
+import com.loopers.domain.point.Point;
+import com.loopers.domain.user.Gender;
 import com.loopers.domain.user.User;
 import com.loopers.interfaces.api.user.UserDto;
 import lombok.Builder;
-
-import java.util.Optional;
 
 @Builder
 public record UserInfo(
         String loginId
         , String email
         , String birthday
-        , String gender
-        , Integer point
+        , Gender gender
+        , Point point
 ) {
-    public static UserInfo from(Optional<User> optUser) {
-        if(optUser.isPresent()) {
-            User user = optUser.get();
-            return UserInfo.builder()
-                    .loginId(user.getLoginId())
-                    .email(user.getEmail())
-                    .birthday(user.getBirthday())
-                    .gender(user.getGender())
-                    .point(user.getPoint())
-                    .build();
-        }
-
-        return null;
+    public static UserInfo from(User user) {
+        return UserInfo.builder()
+                .loginId(user.getLoginId())
+                .email(user.getEmail())
+                .birthday(user.getBirthday())
+                .gender(user.getGender())
+                .point(user.getPoint())
+                .build();
     }
 
     public static UserInfo from(UserDto.CreateUserRequest cur) {
@@ -35,7 +30,6 @@ public record UserInfo(
                 .email(cur.email())
                 .birthday(cur.birthday())
                 .gender(cur.gender())
-                .point(cur.point())
                 .build();
     }
 

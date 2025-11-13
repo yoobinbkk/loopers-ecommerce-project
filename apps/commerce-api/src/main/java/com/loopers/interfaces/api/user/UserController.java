@@ -6,16 +6,14 @@ import com.loopers.interfaces.api.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import static com.loopers.support.error.CoreExceptionUtil.validateNullOrBlank;
-
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api/v1/users")
 public class UserController implements UserApiSpec {
 
     private final UserFacade userFacade;
 
-    @PostMapping("/saveUser")
+    @PostMapping("/")
     public ApiResponse<UserDto.UserResponse> saveUser(
             @RequestBody UserDto.CreateUserRequest cur
     ) {
@@ -24,34 +22,13 @@ public class UserController implements UserApiSpec {
         return ApiResponse.success(userResponse);
     }
 
-    @GetMapping("/{loginId}")
+    @GetMapping("/me")
     @Override
     public ApiResponse<UserDto.UserResponse> getUser(
-        @PathVariable String loginId
+            @RequestHeader(value = "X-USER-ID") String xUserId
     ) {
-        UserInfo userInfo = userFacade.getUser(loginId);
+        UserInfo userInfo = userFacade.getUser(xUserId);
         UserDto.UserResponse userResponse = UserDto.UserResponse.from(userInfo);
         return ApiResponse.success(userResponse);
-    }
-
-    @GetMapping("/{loginId}/getUserPoint")
-    @Override
-    public ApiResponse<Integer> getUserPoint(
-            @PathVariable String loginId
-            , @RequestHeader(value = "X-USER-ID", required = false) String xUserId
-    ) {
-        validateNullOrBlank(xUserId, "포인트 조회 시 헤더에 X-USER-ID 가 필요합니다.");
-        Integer userPoint = userFacade.getUserPoint(loginId);
-        return ApiResponse.success(userPoint);
-    }
-
-    @PostMapping("/{loginId}/addUserPoint")
-    @Override
-    public ApiResponse<Integer> addUserPoint(
-            @PathVariable String loginId
-            , @RequestParam Integer userPoint
-    ) {
-        Integer userTotalPoint = userFacade.addUserPoint(loginId, userPoint);
-        return ApiResponse.success(userTotalPoint);
     }
 }

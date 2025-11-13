@@ -9,10 +9,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+
+import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -23,8 +23,8 @@ public class UserIntegrationTest {
     @Autowired
     private UserFacade userFacade;
 
-    @MockitoSpyBean
-    private UserRepository userRepository;
+    @Autowired
+    private UserService userService;
 
     @Autowired
     private DatabaseCleanUp databaseCleanUp;
@@ -35,8 +35,8 @@ public class UserIntegrationTest {
     final String validLoginId = "bobby34";
     final String validEmail = "bobby34@naver.com";
     final String validBirthday = "1994-04-08";
-    final String validGender = "M";
-    final Integer validPoint = 0;
+    final Gender validGender = Gender.MALE;
+    final BigDecimal validPoint = BigDecimal.valueOf(0);
 
     @DisplayName("User 엔티티 생성")
     @Nested
@@ -51,22 +51,18 @@ public class UserIntegrationTest {
                     .email(validEmail)
                     .birthday(validBirthday)
                     .gender(validGender)
-                    .point(validPoint)
                     .build();
 
             // act
-            userFacade.saveUser(userinfo);
+            UserInfo userInfo = userFacade.saveUser(userinfo);
 
             // assert
-            Mockito.verify(userRepository, Mockito.times(1))
-                .save(Mockito.argThat(user -> 
-                    user.getLoginId().equals(validLoginId)
-                    && user.getEmail().equals(validEmail)
-                    && user.getBirthday().equals(validBirthday)
-                    && user.getGender().equals(validGender)
-                    && user.getPoint().equals(validPoint)
-                )
-            );
+            // 저장한 User 의 내용 일치되는지 확인
+            assertEquals(validLoginId, userInfo.loginId());
+            assertEquals(validEmail, userInfo.email());
+            assertEquals(validBirthday, userInfo.birthday());
+            assertEquals(validGender, userInfo.gender());
+            assertTrue(validPoint.compareTo(userInfo.point().getAmount()) == 0);
         }
 
         @DisplayName("실패 케이스 : 이미 저장된 User 를 다시 저장하면 실패")
@@ -78,16 +74,17 @@ public class UserIntegrationTest {
                     .email(validEmail)
                     .birthday(validBirthday)
                     .gender(validGender)
-                    .point(validPoint)
                     .build();
+
             userFacade.saveUser(userinfo);
 
             // act
-            CoreException result = assertThrows(CoreException.class,
-                () -> userFacade.saveUser(userinfo));
+            CoreException result = assertThrows(CoreException.class
+                    , () -> userFacade.saveUser(userinfo));
 
             // assert
             assertEquals(ErrorType.CONFLICT, result.getErrorType());
+            assertEquals("이미 존재하는 회원을 다시 저장 못합니다.", result.getCustomMessage());
         }
 
     }
@@ -105,12 +102,9 @@ public class UserIntegrationTest {
                     .email(validEmail)
                     .birthday(validBirthday)
                     .gender(validGender)
-                    .point(validPoint)
                     .build();
-            userFacade.saveUser(userinfo);
-
+            UserInfo userInfo = userFacade.saveUser(userinfo);
             // act
-            UserInfo userInfo = userFacade.getUser(validLoginId);
 
             // assert
             assertNotNull(userInfo);
@@ -119,7 +113,6 @@ public class UserIntegrationTest {
                     , () -> assertEquals(userInfo.email(), validEmail)
                     , () -> assertEquals(userInfo.birthday(), validBirthday)
                     , () -> assertEquals(userInfo.gender(), validGender)
-                    , () -> assertEquals(userInfo.point(), validPoint)
             );
         }
 
@@ -129,31 +122,13 @@ public class UserIntegrationTest {
             // arrange
 
             // act
-            UserInfo userInfo = userFacade.getUser(validLoginId);
-
-            // assert
-            assertNull(userInfo);
-        }
-    }
-
-    @DisplayName("point 충전 테스트")
-    @Nested
-    class PointTest {
-
-        @DisplayName("실패 케이스 : 존재하지 않는 User ID 로 충전을 시도한 경우, 실패")
-        @Test
-        void addPoint_withNoUser_NotFound() {
-            // arrange
-            Integer requestPoint = 1000;
-
-            // act
-            CoreException result = assertThrows(CoreException.class,
-                    () -> userFacade.addUserPoint(validLoginId,  requestPoint)
-            );
+            CoreException result = assertThrows(CoreException.class
+                    , () -> userFacade.getUser(validLoginId));
 
             // assert
             assertEquals(ErrorType.NOT_FOUND, result.getErrorType());
-            assertTrue(result.getCustomMessage().endsWith("point를 충전할 User를 찾을 수 없습니다."));
+            assertTrue(result.getCustomMessage().endsWith("User 를 찾지 못했습니다."));
         }
     }
+
 }
