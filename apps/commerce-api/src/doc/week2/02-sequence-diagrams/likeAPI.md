@@ -14,8 +14,8 @@ sequenceDiagram
     Note left of C: Product 좋아요 등록 API 호출 (유저ID, 상품ID)
     Note left of C: Path Variable: "productId":123<br/>Header:"userId":123
 
-    C->>+F: addProductLike(String userId, Long productId)
-    F->>+S: addProductLike(String userId, Long productId)
+    C->>+F: saveProductLike(String userId, Long productId)
+    F->>+S: saveProductLike(String userId, Long productId)
 
     S->>+R: save(Like likeEntity)
     Note right of S: 중복 등록 시 덮어씀으로 데이터 무결점 확보, 멱등성 실천
