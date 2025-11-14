@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -40,27 +41,32 @@ public class UserFacade {
             throw new CoreException(ErrorType.CONFLICT, "이미 존재하는 회원의 포인트를 다시 저장 못합니다.");
         }
 
-        // 포인트 객체 생성 (User 객체는 NULL)
-        Point point = Point.builder()
-                .user(null)
-                .amount(BigDecimal.valueOf(0))
-                .build();
-
-        // 회원 객체 생성 (point 참조)
+        // 회원 객체 생성 (point는 null, 빈 likes 리스트 초기화)
         User user = User.builder()
                 .loginId(userInfo.loginId())
                 .email(userInfo.email())
                 .birthday(userInfo.birthday())
                 .gender(userInfo.gender())
-                .point(point)
+                .point(null)  // Point는 나중에 설정
+                .likes(new ArrayList<>())
                 .build();
 
-        // 회원 저장 (Cascade로 Point도 함께 저장됨)
+        // 회원 저장 (Point 없이 먼저 저장)
         User savedUser = userService.saveUser(user)
-                .orElseThrow(() -> new CoreException(ErrorType.INTERNAL_ERROR, "User 를 저장하지 못했습니다. (참조된 포인트 객체와 함께 저장)"));
+                .orElseThrow(() -> new CoreException(ErrorType.INTERNAL_ERROR, "User 를 저장하지 못했습니다."));
 
-        // Point의 user 참조 설정 (영속성 컨텍스트가 자동으로 UPDATE)
-        point.setUser(savedUser);
+        // 포인트 객체 생성 (저장된 User 참조)
+        Point point = Point.builder()
+                .user(savedUser)  // 저장된 User 참조
+                .amount(BigDecimal.valueOf(0))
+                .build();
+
+        // Point 저장
+        Point savedPoint = pointService.savePoint(point)
+                .orElseThrow(() -> new CoreException(ErrorType.INTERNAL_ERROR, "Point 를 저장하지 못했습니다."));
+
+        // User에 Point 설정 (양방향 관계 완성)
+        savedUser.setPoint(savedPoint);
 
         return UserInfo.from(savedUser);
     }

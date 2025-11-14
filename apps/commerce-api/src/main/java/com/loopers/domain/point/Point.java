@@ -64,4 +64,22 @@ public class Point extends BaseEntity {
         this.amount = this.amount.add(amount);
         return this.amount;
     }
+
+    public BigDecimal deduct(BigDecimal amount) {
+        // 차감하는 포인트가 음수이면 BAD REQUEST CoreException 을 발생
+        if(amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new CoreException(ErrorType.BAD_REQUEST, "차감할 point는 0 이하가 될 수 없습니다.");
+        }
+        
+        // 포인트가 부족하면 BAD REQUEST CoreException 을 발생
+        if(this.amount.compareTo(amount) < 0) {
+            throw new CoreException(
+                ErrorType.BAD_REQUEST, 
+                "포인트가 부족합니다. (현재 포인트: " + this.amount + ", 요청 금액: " + amount + ")"
+            );
+        }
+        
+        this.amount = this.amount.subtract(amount);
+        return this.amount;
+    }
 }
