@@ -83,6 +83,13 @@ public class OrderFacade {
                         "Order 저장에 실패했습니다."
                 ));
 
+        // 4. 쿠폰 적용 (포인트 차감 전에 할인 적용)
+        if (request.couponIds() != null && !request.couponIds().isEmpty()) {
+                for(Long couponId : request.couponIds()) {
+                        couponService.useCoupon(savedOrder, couponId);
+                }
+        }
+
         // 5. 포인트 차감 (쿠폰 할인 적용 후 최종 금액으로)
         pointService.deduct(loginId, savedOrder.getFinalAmount());
         
