@@ -29,8 +29,8 @@ public class PointQueryRepository {
                 .update(point)
                 .set(point.amount, point.amount.subtract(deductAmount))
                 .where(
-                        point.user.loginId.eq(loginId)
-                        .and(point.amount.goe(deductAmount))  // 포인트가 충분한 경우만
+                        point.user.loginId.eq(loginId)          // 사용자 로그인 ID와 일치하는 경우
+                        .and(point.amount.goe(deductAmount))    // 포인트가 충분한 경우만
                 )
                 .execute();
     }

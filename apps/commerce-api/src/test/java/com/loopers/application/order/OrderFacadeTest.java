@@ -31,16 +31,22 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("OrderFacade 통합 테스트")
 @SpringBootTest
-class OrderFacadeIntegrationTest {
+class OrderFacadeTest {
 
     @Autowired
     private OrderFacade orderFacade;
@@ -77,6 +83,9 @@ class OrderFacadeIntegrationTest {
 
     @Autowired
     private DatabaseCleanUp databaseCleanUp;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     private User testUser;
     private Product testProduct;
@@ -401,6 +410,160 @@ class OrderFacadeIntegrationTest {
 
             assertEquals(ErrorType.BAD_REQUEST, exception.getErrorType());
             assertTrue(exception.getCustomMessage().contains("쿠폰을 사용할 수 없습니다"));
+        }
+    }
+
+    @DisplayName("동시성 테스트")
+    @Nested
+    class ConcurrencyTest {
+
+        @DisplayName("여러 주문이 동시에 들어와도 재고/포인트/쿠폰이 일관되게 처리된다")
+        @Test
+        void createOrder_concurrentRequests_consistencyMaintained() throws InterruptedException {
+            // arrange
+            int initialStock = 10;
+            int couponCount = 5;
+            Stock stock = stockRepository.findByProductId(testProductId)
+                    .orElseThrow(() -> new RuntimeException("Stock을 찾을 수 없습니다"));
+            long currentQuantity = stock.getQuantity();
+            if (currentQuantity > initialStock) {
+                stockService.decreaseQuantity(testProductId, currentQuantity - initialStock);
+            } else if (currentQuantity < initialStock) {
+                stockService.increaseQuantity(testProductId, initialStock - currentQuantity);
+            }
+
+            List<OrderDto.OrderItemRequest> items = List.of(
+                    OrderDto.OrderItemRequest.builder()
+                            .productId(testProductId)
+                            .quantity(1)
+                            .build()
+            );
+            OrderDto.CreateOrderRequest request = OrderDto.CreateOrderRequest.builder()
+                    .items(items)
+                    .couponIds(new ArrayList<>())
+                    .build();
+
+            List<Long> couponIds = new ArrayList<>();
+            for (int i = 0; i < couponCount; i++) {
+                Coupon coupon = Coupon.builder()
+                        .couponType(CouponType.FIXED_AMOUNT)
+                        .discountValue(BigDecimal.valueOf(5000))
+                        .user(testUser)
+                        .build();
+                Long couponId = couponRepository.save(coupon)
+                        .orElseThrow(() -> new RuntimeException("Coupon 저장 실패"))
+                        .getId();
+                couponIds.add(couponId);
+            }
+            ConcurrentLinkedQueue<Long> couponQueue = new ConcurrentLinkedQueue<>(couponIds);
+
+            int threadCount = 20;
+            ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+            CountDownLatch ready = new CountDownLatch(threadCount);
+            CountDownLatch start = new CountDownLatch(1);
+            CountDownLatch done = new CountDownLatch(threadCount);
+
+            List<OrderInfo> successOrders = Collections.synchronizedList(new ArrayList<>());
+            List<Throwable> failures = Collections.synchronizedList(new ArrayList<>());
+
+            for (int i = 0; i < threadCount; i++) {
+                executor.submit(() -> {
+                    ready.countDown();
+                    try {
+                        start.await();
+                        Long couponId = couponQueue.poll();
+                        OrderDto.CreateOrderRequest actualRequest = couponId == null
+                                ? request
+                                : OrderDto.CreateOrderRequest.builder()
+                                    .items(items)
+                                    .couponIds(List.of(couponId))
+                                    .build();
+                        OrderInfo orderInfo = orderFacade.createOrder(testLoginId, actualRequest);
+                        successOrders.add(orderInfo);
+                    } catch (Throwable t) {
+                        failures.add(t);
+                    } finally {
+                        done.countDown();
+                    }
+                });
+            }
+
+            ready.await();
+            start.countDown();
+            done.await();
+            executor.shutdownNow();
+
+            // assert
+            assertEquals(initialStock, successOrders.size(), "재고 수만큼만 주문이 성공해야 함");
+            assertTrue(failures.size() >= threadCount - initialStock, "초과 주문은 실패해야 함");
+            failures.forEach(failure -> {
+                assertTrue(failure instanceof CoreException, "실패는 CoreException이어야 함");
+                CoreException exception = (CoreException) failure;
+                assertEquals(ErrorType.BAD_REQUEST, exception.getErrorType(), "실패 타입은 BAD_REQUEST여야 함");
+                assertTrue(exception.getCustomMessage().contains("재고가 부족"), "실패 메시지는 재고 부족이어야 함");
+            });
+
+            Stock finalStock = stockRepository.findByProductId(testProductId)
+                    .orElseThrow(() -> new RuntimeException("Stock을 찾을 수 없습니다"));
+            assertEquals(0L, finalStock.getQuantity(), "재고는 0이어야 함");
+
+            BigDecimal productPrice = testProduct.getPrice();
+            BigDecimal couponDiscount = BigDecimal.valueOf(5000);
+            
+            // 쿠폰 검증은 트랜잭션 내에서 수행
+            long usedCouponCount = verifyCoupons(couponIds, initialStock, couponDiscount);
+
+            long nonCouponSuccessCount = initialStock - usedCouponCount;
+            BigDecimal totalCouponOrders = productPrice.subtract(couponDiscount)
+                    .multiply(BigDecimal.valueOf(usedCouponCount));
+            BigDecimal totalNonCouponOrders = productPrice
+                    .multiply(BigDecimal.valueOf(nonCouponSuccessCount));
+            BigDecimal expectedPoint = BigDecimal.valueOf(100000)
+                    .subtract(totalCouponOrders.add(totalNonCouponOrders));
+            Point point = pointService.findByUserLoginId(testLoginId)
+                    .orElseThrow(() -> new RuntimeException("Point를 찾을 수 없습니다"));
+            assertEquals(0, expectedPoint.compareTo(point.getAmount()), "사용된 포인트가 정확해야 함");
+
+            successOrders.forEach(orderInfo -> {
+                assertEquals(OrderStatus.CONFIRMED, orderInfo.orderStatus(), "성공 주문 상태 검증");
+                assertEquals(1, orderInfo.orderItems().size(), "주문 상품 수는 1개");
+                if (orderInfo.discountAmount().compareTo(BigDecimal.ZERO) > 0) {
+                    assertEquals(0, couponDiscount.compareTo(orderInfo.discountAmount()), "쿠폰 할인 금액 일치");
+                } else {
+                    assertEquals(BigDecimal.ZERO, orderInfo.discountAmount(), "쿠폰이 없으면 할인 없음");
+                }
+                BigDecimal expectedFinalAmount = productPrice.subtract(orderInfo.discountAmount());
+                assertEquals(0, expectedFinalAmount.compareTo(orderInfo.finalAmount()), "최종 금액 검증");
+            });
+        }
+
+        private long verifyCoupons(List<Long> couponIds, int initialStock, BigDecimal couponDiscount) {
+            Long result = transactionTemplate.execute(status -> {
+                long usedCouponCount = couponIds.stream()
+                        .filter(id -> id != null)
+                        .map(id -> couponRepository.findById(id)
+                                .orElseThrow(() -> new RuntimeException("Coupon을 찾을 수 없습니다")))
+                        .filter(Coupon::getIsUsed)
+                        .peek(coupon -> {
+                            assertNotNull(coupon.getOrder(), "쿠폰은 주문과 연결되어야 함");
+                        })
+                        .count();
+                assertTrue(usedCouponCount <= initialStock, "사용된 쿠폰 수는 성공 주문 수를 초과할 수 없음");
+
+                couponIds.stream()
+                        .filter(id -> id != null)
+                        .forEach(id -> {
+                            Coupon coupon = couponRepository.findById(id)
+                                    .orElseThrow(() -> new RuntimeException("Coupon을 찾을 수 없습니다"));
+                            if (coupon.getIsUsed()) {
+                                Order order = coupon.getOrder();
+                                assertEquals(couponDiscount.compareTo(order.getDiscountAmount()), 0, "쿠폰 사용 주문 할인 금액 검증");
+                            }
+                        });
+                
+                return usedCouponCount;
+            });
+            return result != null ? result : 0L;
         }
     }
 }

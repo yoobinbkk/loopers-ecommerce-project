@@ -27,7 +27,7 @@ public class StockQueryRepository {
                 .update(stock)
                 .set(stock.quantity, stock.quantity.subtract(decreaseQuantity))
                 .where(
-                        stock.product.id.eq(productId)
+                        stock.product.id.eq(productId)              // 상품 ID와 일치하는 경우
                         .and(stock.quantity.goe(decreaseQuantity))  // 재고가 충분한 경우만
                 )
                 .execute();
